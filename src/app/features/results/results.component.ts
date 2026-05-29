@@ -49,7 +49,11 @@ interface RoundWithMatches extends Round {
                         <span class="font-bold text-white text-base sm:text-lg tabular-nums">
                           {{ match.home_sets }} : {{ match.away_sets }}
                         </span>
-                        @if (match.home_games != null && match.away_games != null) {
+                        @if (match.set_scores) {
+                          <div class="text-xs text-slate-500 leading-tight">
+                            {{ match.set_scores }}
+                          </div>
+                        } @else if (match.home_games != null && match.away_games != null) {
                           <div class="text-xs text-slate-500 tabular-nums leading-tight">
                             ({{ match.home_games }}:{{ match.away_games }})
                           </div>

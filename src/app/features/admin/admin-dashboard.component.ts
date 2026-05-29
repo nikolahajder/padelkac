@@ -10,8 +10,23 @@ import { Match } from '../../core/models/match.model';
 interface MatchEditState {
   home: number | string;
   away: number | string;
-  homeGames: number | string;
-  awayGames: number | string;
+  setScores: string;
+}
+
+function parseSetScores(input: string): { homeGames: number; awayGames: number } | null {
+  const sets = input.trim().split(/\s+/);
+  if (!sets[0]) return null;
+  let homeGames = 0, awayGames = 0;
+  for (const set of sets) {
+    const parts = set.split(':');
+    if (parts.length !== 2) return null;
+    const h = parseInt(parts[0], 10);
+    const a = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return null;
+    homeGames += h;
+    awayGames += a;
+  }
+  return { homeGames, awayGames };
 }
 
 interface DialogConfig {
@@ -173,19 +188,14 @@ interface DialogConfig {
                               />
                               <span class="text-slate-600 text-xs ml-1.5">G</span>
                               <input
-                                type="number" min="0"
-                                [value]="editHomeGames(match.id)"
-                                (input)="onEditInput(match.id, 'homeGames', $event)"
-                                class="w-10 bg-slate-700 border border-slate-600 text-white text-center py-1 rounded text-sm
-                                       focus:outline-none focus:border-emerald-500 transition-colors"
-                              />
-                              <span class="text-slate-500 select-none">:</span>
-                              <input
-                                type="number" min="0"
-                                [value]="editAwayGames(match.id)"
-                                (input)="onEditInput(match.id, 'awayGames', $event)"
-                                class="w-10 bg-slate-700 border border-slate-600 text-white text-center py-1 rounded text-sm
-                                       focus:outline-none focus:border-emerald-500 transition-colors"
+                                type="text"
+                                placeholder="6:3 6:3"
+                                [value]="editSetScores(match.id)"
+                                (input)="onEditInput(match.id, 'setScores', $event)"
+                                class="w-24 bg-slate-700 border text-white text-center py-1 rounded text-sm
+                                       focus:outline-none transition-colors"
+                                [class.border-slate-600]="!isSetScoresInvalid(match.id)"
+                                [class.border-red-500]="isSetScoresInvalid(match.id)"
                               />
                             </div>
 
@@ -396,8 +406,7 @@ export class AdminDashboardComponent implements OnInit {
         state[m.id] = {
           home: m.home_sets !== null ? m.home_sets : '',
           away: m.away_sets !== null ? m.away_sets : '',
-          homeGames: m.home_games != null ? m.home_games : '',
-          awayGames: m.away_games != null ? m.away_games : '',
+          setScores: m.set_scores ?? '',
         };
       });
       this.editState.set(state);
@@ -424,8 +433,7 @@ export class AdminDashboardComponent implements OnInit {
         state[m.id] = {
           home: m.home_sets !== null ? m.home_sets : '',
           away: m.away_sets !== null ? m.away_sets : '',
-          homeGames: m.home_games != null ? m.home_games : '',
-          awayGames: m.away_games != null ? m.away_games : '',
+          setScores: m.set_scores ?? '',
         };
       }
     });
@@ -522,23 +530,25 @@ export class AdminDashboardComponent implements OnInit {
     return this.editState()[matchId]?.away ?? '';
   }
 
-  editHomeGames(matchId: string): number | string {
-    return this.editState()[matchId]?.homeGames ?? '';
+  editSetScores(matchId: string): string {
+    return this.editState()[matchId]?.setScores ?? '';
   }
 
-  editAwayGames(matchId: string): number | string {
-    return this.editState()[matchId]?.awayGames ?? '';
+  isSetScoresInvalid(matchId: string): boolean {
+    const s = this.editState()[matchId];
+    if (!s || !s.setScores.trim()) return false;
+    return !parseSetScores(s.setScores);
   }
 
-  onEditInput(matchId: string, side: 'home' | 'away' | 'homeGames' | 'awayGames', event: Event) {
+  onEditInput(matchId: string, side: 'home' | 'away' | 'setScores', event: Event) {
     const val = (event.target as HTMLInputElement).value;
-    let numVal: number | string;
+    let newVal: number | string;
     if (side === 'home' || side === 'away') {
-      numVal = val === '' ? '' : Math.min(2, Math.max(0, parseInt(val, 10)));
+      newVal = val === '' ? '' : Math.min(2, Math.max(0, parseInt(val, 10)));
     } else {
-      numVal = val === '' ? '' : Math.max(0, parseInt(val, 10));
+      newVal = val;
     }
-    this.editState.update(s => ({ ...s, [matchId]: { ...s[matchId], [side]: numVal } }));
+    this.editState.update(s => ({ ...s, [matchId]: { ...s[matchId], [side]: newVal } }));
   }
 
   isSaving(matchId: string): boolean {
@@ -547,7 +557,9 @@ export class AdminDashboardComponent implements OnInit {
 
   canSave(matchId: string): boolean {
     const s = this.editState()[matchId];
-    return !!s && s.home !== '' && s.away !== '';
+    if (!s || s.home === '' || s.away === '') return false;
+    if (s.setScores.trim() && !parseSetScores(s.setScores)) return false;
+    return true;
   }
 
   async saveResult(matchId: string) {
@@ -556,9 +568,8 @@ export class AdminDashboardComponent implements OnInit {
     this.savingMatchIds.update(ids => [...ids, matchId]);
     this.globalError.set('');
     try {
-      const homeGames = s.homeGames !== '' ? Number(s.homeGames) : null;
-      const awayGames = s.awayGames !== '' ? Number(s.awayGames) : null;
-      await this.league.updateMatchResult(matchId, Number(s.home), Number(s.away), homeGames, awayGames);
+      const setScores = s.setScores.trim() || null;
+      await this.league.updateMatchResult(matchId, Number(s.home), Number(s.away), setScores);
       await this.reloadMatchesAndTeams();
     } catch {
       this.globalError.set('Greška pri čuvanju rezultata.');
@@ -583,7 +594,7 @@ export class AdminDashboardComponent implements OnInit {
       await this.reloadMatchesAndTeams();
       this.editState.update(s => ({
         ...s,
-        [matchId]: { home: '', away: '', homeGames: '', awayGames: '' },
+        [matchId]: { home: '', away: '', setScores: '' },
       }));
     } catch {
       this.globalError.set('Greška pri poništavanju rezultata.');

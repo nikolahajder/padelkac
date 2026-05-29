@@ -54,20 +54,43 @@ export class LeagueService {
     matchId: string,
     homeSets: number,
     awaySets: number,
-    homeGames: number | null,
-    awayGames: number | null,
+    setScores: string | null,
   ): Promise<void> {
+    let homeGames: number | null = null;
+    let awayGames: number | null = null;
+    if (setScores) {
+      const parsed = this.parseSetScores(setScores);
+      if (parsed) {
+        homeGames = parsed.homeGames;
+        awayGames = parsed.awayGames;
+      }
+    }
     const { error } = await this.supabase.client
       .from('matches')
-      .update({ home_sets: homeSets, away_sets: awaySets, home_games: homeGames, away_games: awayGames })
+      .update({ home_sets: homeSets, away_sets: awaySets, home_games: homeGames, away_games: awayGames, set_scores: setScores })
       .eq('id', matchId);
     if (error) throw error;
+  }
+
+  private parseSetScores(input: string): { homeGames: number; awayGames: number } | null {
+    const sets = input.trim().split(/\s+/);
+    let homeGames = 0, awayGames = 0;
+    for (const set of sets) {
+      const parts = set.split(':');
+      if (parts.length !== 2) return null;
+      const h = parseInt(parts[0], 10);
+      const a = parseInt(parts[1], 10);
+      if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return null;
+      homeGames += h;
+      awayGames += a;
+    }
+    return { homeGames, awayGames };
   }
 
   async clearMatchResult(matchId: string): Promise<void> {
     const { error } = await this.supabase.client
       .from('matches')
-      .update({ home_sets: null, away_sets: null, home_games: null, away_games: null })
+      .update({ home_sets: null, away_sets: null, home_games: null, away_games: null, set_scores: null })
       .eq('id', matchId);
     if (error) throw error;
   }

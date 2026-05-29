@@ -10,6 +10,7 @@ export interface Match {
   away_sets: number | null;
   home_games: number | null;
   away_games: number | null;
+  set_scores?: string | null;
   created_at?: string;
   home_team?: Team;
   away_team?: Team;
