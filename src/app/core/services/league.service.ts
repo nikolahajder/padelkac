@@ -80,6 +80,14 @@ export class LeagueService {
     if (error) throw error;
   }
 
+  async updateTeam(teamId: string, name: string): Promise<void> {
+    const { error } = await this.supabase.client
+      .from('teams')
+      .update({ name: name.trim() })
+      .eq('id', teamId);
+    if (error) throw error;
+  }
+
   async deleteTeam(teamId: string): Promise<void> {
     const { error } = await this.supabase.client
       .from('teams')
@@ -221,6 +229,7 @@ export class LeagueService {
       if (h2h !== 0) return h2h;
       if (b.setDiff !== a.setDiff) return b.setDiff - a.setDiff;
       if (b.gameDiff !== a.gameDiff) return b.gameDiff - a.gameDiff;
+      if (b.setsWon !== a.setsWon) return b.setsWon - a.setsWon;
       return a.team.name.localeCompare(b.team.name);
     });
 

@@ -31,7 +31,6 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
                   <th class="px-1 sm:px-4 py-3 text-center">P</th>
                   <th class="px-1 sm:px-4 py-3 text-center">G</th>
                   <th class="px-1 sm:px-4 py-3 text-center">SR</th>
-                  <th class="px-1 sm:px-4 py-3 text-center">GR</th>
                   <th class="px-1 pr-3 sm:px-4 py-3 text-center font-semibold text-slate-400">BOD</th>
                 </tr>
               </thead>
@@ -55,16 +54,11 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
                       [class.text-red-400]="s.setDiff < 0"
                       [class.text-slate-400]="s.setDiff === 0"
                     >{{ s.setDiff > 0 ? '+' : '' }}{{ s.setDiff }}</td>
-                    <td class="px-1 sm:px-4 py-2.5 sm:py-3 text-center font-medium tabular-nums"
-                      [class.text-emerald-400]="s.gameDiff > 0"
-                      [class.text-red-400]="s.gameDiff < 0"
-                      [class.text-slate-400]="s.gameDiff === 0"
-                    >{{ s.gameDiff > 0 ? '+' : '' }}{{ s.gameDiff }}</td>
                     <td class="px-1 pr-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-white tabular-nums">{{ s.points }}</td>
                   </tr>
                   @if (s.position === 4 && standings().length > 4) {
                     <tr>
-                      <td colspan="8" class="px-4 py-0">
+                      <td colspan="7" class="px-4 py-0">
                         <div class="flex items-center gap-2 py-1">
                           <div class="flex-1 border-t border-dashed border-emerald-500/30"></div>
                           <span class="text-emerald-500/50 text-xs tracking-wider">Final Four</span>
@@ -84,7 +78,6 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
           <span>P — Pobede</span>
           <span>G — Gubici</span>
           <span>SR — Set Razlika</span>
-          <span>GR — Gem Razlika</span>
           <span>BOD — Bodovi</span>
         </div>
       }

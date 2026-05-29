@@ -262,16 +262,61 @@ interface DialogConfig {
               } @else {
                 <div class="divide-y divide-slate-700/40">
                   @for (team of teams(); track team.id; let i = $index) {
-                    <div class="px-4 py-3 flex items-center justify-between">
-                      <div class="flex items-center gap-3">
-                        <span class="text-slate-600 text-xs w-5 text-right">{{ i + 1 }}</span>
-                        <span class="text-slate-200 text-sm">{{ team.name }}</span>
-                      </div>
-                      <button
-                        (click)="deleteTeam(team.id)"
-                        class="text-slate-700 hover:text-red-400 transition-colors text-xs px-2 py-1"
-                        title="Obriši tim"
-                      >✕</button>
+                    <div class="px-4 py-2.5 flex items-center gap-2">
+                      <span class="text-slate-600 text-xs w-5 text-right shrink-0">{{ i + 1 }}</span>
+
+                      @if (editingTeamId() === team.id) {
+                        <input
+                          type="text"
+                          [(ngModel)]="editingTeamName"
+                          (keyup.enter)="saveEditTeam(team.id)"
+                          (keyup.escape)="cancelEditTeam()"
+                          class="flex-1 bg-slate-700 border border-emerald-500 text-white px-2 py-1 rounded text-sm
+                                 focus:outline-none transition-colors"
+                          #editInput
+                        />
+                        <button
+                          (click)="saveEditTeam(team.id)"
+                          [disabled]="!editingTeamName.trim() || savingTeam()"
+                          class="text-emerald-400 hover:text-emerald-300 disabled:opacity-40 px-1.5 py-1 transition-colors"
+                          title="Sačuvaj"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
+                          (click)="cancelEditTeam()"
+                          class="text-slate-500 hover:text-slate-300 px-1.5 py-1 transition-colors"
+                          title="Otkaži"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      } @else {
+                        <span class="flex-1 text-slate-200 text-sm">{{ team.name }}</span>
+                        <button
+                          (click)="startEditTeam(team)"
+                          class="text-slate-600 hover:text-slate-300 px-1.5 py-1 transition-colors"
+                          title="Izmeni naziv"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          (click)="deleteTeam(team.id)"
+                          class="text-slate-600 hover:text-red-400 px-1.5 py-1 transition-colors"
+                          title="Obriši tim"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      }
                     </div>
                   }
                 </div>
@@ -564,6 +609,37 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   // ---- Teams tab ----
+  editingTeamId = signal<string | null>(null);
+  editingTeamName = '';
+  savingTeam = signal(false);
+
+  startEditTeam(team: Team) {
+    this.editingTeamId.set(team.id);
+    this.editingTeamName = team.name;
+  }
+
+  cancelEditTeam() {
+    this.editingTeamId.set(null);
+    this.editingTeamName = '';
+  }
+
+  async saveEditTeam(teamId: string) {
+    if (!this.editingTeamName.trim()) return;
+    this.savingTeam.set(true);
+    this.globalError.set('');
+    try {
+      await this.league.updateTeam(teamId, this.editingTeamName);
+      const teams = await this.league.getTeams();
+      this.teams.set(teams);
+      this.editingTeamId.set(null);
+      this.editingTeamName = '';
+    } catch {
+      this.globalError.set('Greška pri izmeni tima.');
+    } finally {
+      this.savingTeam.set(false);
+    }
+  }
+
   async addTeam() {
     if (!this.newTeamName.trim()) return;
     this.addingTeam.set(true);
