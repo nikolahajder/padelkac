@@ -117,7 +117,8 @@ export class LeagueService {
     if (teams.length < 2) throw new Error('Potrebno je najmanje 2 tima za generisanje lige.');
     if (teams.length % 2 !== 0) throw new Error(`Liga zahteva paran broj timova. Trenutno imate ${teams.length} timova.`);
 
-    const schedule = this.roundRobinSchedule(teams);
+    const shuffled = this.shuffleArray([...teams]);
+    const schedule = this.roundRobinSchedule(shuffled);
 
     await this.clearLeague();
 
@@ -143,6 +144,14 @@ export class LeagueService {
       .from('matches')
       .insert(matchInserts);
     if (mErr) throw mErr;
+  }
+
+  private shuffleArray<T>(array: T[]): T[] {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
   }
 
   private roundRobinSchedule(teams: Team[]): [string, string][][] {
