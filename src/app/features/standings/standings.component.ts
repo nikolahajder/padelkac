@@ -104,6 +104,26 @@ import { TeamStanding } from '../../core/models/team.model';
           {{ error() }}
         </div>
       }
+
+      <!-- Sponsors (hidden for now)
+      <div class="mt-10">
+        <div class="text-xs uppercase tracking-widest text-slate-600 text-center mb-4">Sponzori</div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <a href="https://rs-barbershop.com/" target="_blank" rel="noopener noreferrer"
+            class="flex flex-col items-center gap-3 group">
+            <img src="/images/sponsors/barber.jpeg" alt="Barber Shop"
+              class="max-h-32 w-auto object-contain opacity-90 group-hover:opacity-100 transition-opacity duration-200" />
+            <span class="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Barber Shop</span>
+          </a>
+          <a href="https://evrodom.rs/" target="_blank" rel="noopener noreferrer"
+            class="flex flex-col items-center gap-3 group">
+            <img src="/images/sponsors/evrodom.jpeg" alt="Evrodom"
+              class="max-h-32 w-auto object-contain opacity-90 group-hover:opacity-100 transition-opacity duration-200" />
+            <span class="text-sm text-slate-400 group-hover:text-slate-200 transition-colors">Evrodom</span>
+          </a>
+        </div>
+      </div>
+      -->
     </div>
   `,
 })
