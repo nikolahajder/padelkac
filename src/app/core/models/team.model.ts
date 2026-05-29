@@ -13,5 +13,8 @@ export interface TeamStanding {
   setsWon: number;
   setsLost: number;
   setDiff: number;
+  gamesWon: number;
+  gamesLost: number;
+  gameDiff: number;
   points: number;
 }

@@ -10,7 +10,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       <div class="max-w-5xl mx-auto px-4">
         <div class="flex items-center justify-between h-14">
           <div class="flex items-center gap-2">
-            <span class="text-lg font-bold text-white tracking-tight">Padel Liga Kac</span>
+            <a routerLink="/tabela" class="text-lg font-bold text-white tracking-tight hover:text-emerald-400 transition-colors">Padel Liga Kać</a>
           </div>
 
           <!-- Desktop nav -->

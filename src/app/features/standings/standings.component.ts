@@ -32,43 +32,49 @@ import { TeamStanding } from '../../core/models/team.model';
       } @else {
         <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full text-xs sm:text-sm">
               <thead>
-                <tr class="border-b border-slate-700 text-slate-500 text-xs uppercase tracking-wider">
-                  <th class="px-3 sm:px-4 py-3 text-left w-10">#</th>
-                  <th class="px-3 sm:px-4 py-3 text-left">Tim</th>
-                  <th class="px-2 sm:px-4 py-3 text-center">OM</th>
-                  <th class="px-2 sm:px-4 py-3 text-center">P</th>
-                  <th class="px-2 sm:px-4 py-3 text-center">G</th>
-                  <th class="px-2 sm:px-4 py-3 text-center">SR</th>
-                  <th class="px-2 sm:px-4 py-3 text-center font-semibold text-slate-400">BOD</th>
+                <tr class="border-b border-slate-700 text-slate-500 text-[10px] sm:text-xs uppercase tracking-wider">
+                  <th class="pl-3 pr-1 sm:px-4 py-3 text-left w-6 sm:w-10">#</th>
+                  <th class="px-1 sm:px-4 py-3 text-left">Tim</th>
+                  <th class="px-1 sm:px-4 py-3 text-center">OM</th>
+                  <th class="px-1 sm:px-4 py-3 text-center">P</th>
+                  <th class="px-1 sm:px-4 py-3 text-center">G</th>
+                  <th class="px-1 sm:px-4 py-3 text-center">SR</th>
+                  <th class="px-1 sm:px-4 py-3 text-center">GR</th>
+                  <th class="px-1 pr-3 sm:px-4 py-3 text-center font-semibold text-slate-400">BOD</th>
                 </tr>
               </thead>
               <tbody>
                 @for (s of standings(); track s.team.id) {
                   <tr class="border-b border-slate-700/40 hover:bg-slate-700/25 transition-colors last:border-0"
                     [class.bg-emerald-500/5]="s.position <= 4">
-                    <td class="px-3 sm:px-4 py-3">
-                      <span class="text-xs font-bold tabular-nums w-6 inline-block text-center"
+                    <td class="pl-3 pr-1 sm:px-4 py-2.5 sm:py-3">
+                      <span class="text-xs font-bold tabular-nums w-5 sm:w-6 inline-block text-center"
                         [class.text-emerald-400]="s.position <= 4"
                         [class.text-slate-500]="s.position > 4">
                         {{ s.position }}
                       </span>
                     </td>
-                    <td class="px-3 sm:px-4 py-3 font-medium text-white whitespace-nowrap">{{ s.team.name }}</td>
-                    <td class="px-2 sm:px-4 py-3 text-center text-slate-400">{{ s.played }}</td>
-                    <td class="px-2 sm:px-4 py-3 text-center text-emerald-400 font-medium">{{ s.wins }}</td>
-                    <td class="px-2 sm:px-4 py-3 text-center text-red-400 font-medium">{{ s.losses }}</td>
-                    <td class="px-2 sm:px-4 py-3 text-center font-medium"
+                    <td class="px-1 sm:px-4 py-2.5 sm:py-3 font-medium text-white">{{ s.team.name }}</td>
+                    <td class="px-1 sm:px-4 py-2.5 sm:py-3 text-center text-slate-400 tabular-nums">{{ s.played }}</td>
+                    <td class="px-1 sm:px-4 py-2.5 sm:py-3 text-center text-emerald-400 font-medium tabular-nums">{{ s.wins }}</td>
+                    <td class="px-1 sm:px-4 py-2.5 sm:py-3 text-center text-red-400 font-medium tabular-nums">{{ s.losses }}</td>
+                    <td class="px-1 sm:px-4 py-2.5 sm:py-3 text-center font-medium tabular-nums"
                       [class.text-emerald-400]="s.setDiff > 0"
                       [class.text-red-400]="s.setDiff < 0"
                       [class.text-slate-400]="s.setDiff === 0"
                     >{{ s.setDiff > 0 ? '+' : '' }}{{ s.setDiff }}</td>
-                    <td class="px-2 sm:px-4 py-3 text-center font-bold text-white text-base">{{ s.points }}</td>
+                    <td class="px-1 sm:px-4 py-2.5 sm:py-3 text-center font-medium tabular-nums"
+                      [class.text-emerald-400]="s.gameDiff > 0"
+                      [class.text-red-400]="s.gameDiff < 0"
+                      [class.text-slate-400]="s.gameDiff === 0"
+                    >{{ s.gameDiff > 0 ? '+' : '' }}{{ s.gameDiff }}</td>
+                    <td class="px-1 pr-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-white tabular-nums">{{ s.points }}</td>
                   </tr>
                   @if (s.position === 4 && standings().length > 4) {
                     <tr>
-                      <td colspan="7" class="px-4 py-0">
+                      <td colspan="8" class="px-4 py-0">
                         <div class="flex items-center gap-2 py-1">
                           <div class="flex-1 border-t border-dashed border-emerald-500/30"></div>
                           <span class="text-emerald-500/50 text-xs tracking-wider">Final Four</span>
@@ -88,6 +94,7 @@ import { TeamStanding } from '../../core/models/team.model';
           <span>P — Pobede</span>
           <span>G — Gubici</span>
           <span>SR — Set Razlika</span>
+          <span>GR — Gem Razlika</span>
           <span>BOD — Bodovi</span>
         </div>
       }

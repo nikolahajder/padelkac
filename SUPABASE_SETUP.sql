@@ -25,6 +25,8 @@ CREATE TABLE public.matches (
   away_team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE RESTRICT,
   home_sets INTEGER CHECK (home_sets >= 0 AND home_sets <= 2),
   away_sets INTEGER CHECK (away_sets >= 0 AND away_sets <= 2),
+  home_games INTEGER CHECK (home_games >= 0),
+  away_games INTEGER CHECK (away_games >= 0),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT different_teams CHECK (home_team_id != away_team_id)
 );
@@ -52,3 +54,11 @@ CREATE POLICY "auth write matches" ON public.matches FOR ALL TO authenticated US
 -- Authentication -> Users -> Add user
 -- i kreiraj admin korisnika sa email/lozinkom
 -- =============================================
+
+-- =============================================
+-- MIGRACIJA: Dodaj home_games / away_games
+-- Pokreni ovo ako vec imas tabelu matches bez ovih kolona
+-- =============================================
+-- ALTER TABLE public.matches
+--   ADD COLUMN IF NOT EXISTS home_games INTEGER CHECK (home_games >= 0),
+--   ADD COLUMN IF NOT EXISTS away_games INTEGER CHECK (away_games >= 0);

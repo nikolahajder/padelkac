@@ -54,11 +54,16 @@ interface RoundWithMatches extends Round {
                       [class.text-slate-200]="match.home_sets === null"
                     >{{ match.home_team?.name ?? '—' }}</span>
 
-                    <div class="min-w-[64px] text-center">
+                    <div class="min-w-[72px] text-center">
                       @if (match.home_sets !== null && match.away_sets !== null) {
                         <span class="font-bold text-white text-base sm:text-lg tabular-nums">
                           {{ match.home_sets }} : {{ match.away_sets }}
                         </span>
+                        @if (match.home_games != null && match.away_games != null) {
+                          <div class="text-xs text-slate-500 tabular-nums leading-tight">
+                            ({{ match.home_games }}:{{ match.away_games }})
+                          </div>
+                        }
                       } @else {
                         <span class="text-slate-600 text-sm">vs</span>
                       }
@@ -97,7 +102,7 @@ export class ResultsComponent implements OnInit {
     const matches = this.matches();
     return rounds
       .map(r => ({ ...r, matches: matches.filter(m => m.round_id === r.id) }))
-      .sort((a, b) => b.round_number - a.round_number);
+      .sort((a, b) => a.round_number - b.round_number);
   });
 
   constructor(private league: LeagueService) {}

@@ -10,14 +10,15 @@ import { Match } from '../../core/models/match.model';
 interface MatchEditState {
   home: number | string;
   away: number | string;
-  saving: boolean;
+  homeGames: number | string;
+  awayGames: number | string;
 }
 
-interface AddMatchFormState {
-  homeTeamId: string;
-  awayTeamId: string;
-  open: boolean;
-  saving: boolean;
+interface DialogConfig {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
 }
 
 @Component({
@@ -72,21 +73,42 @@ interface AddMatchFormState {
         <!-- ===== ROUNDS TAB ===== -->
         @if (activeTab() === 'rounds') {
           <div>
-            <div class="flex justify-end mb-4">
-              <button
-                (click)="createRound()"
-                [disabled]="creatingRound()"
-                class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                {{ creatingRound() ? 'Kreiranje...' : '+ Novo Kolo' }}
-              </button>
-            </div>
-
             @if (roundsDesc().length === 0) {
-              <div class="bg-slate-800 rounded-xl border border-slate-700 p-10 text-center text-slate-500 text-sm">
-                Nema kola. Klikni "+ Novo Kolo" da počneš.
+              <!-- No league yet -->
+              <div class="bg-slate-800 rounded-xl border border-slate-700 p-8 text-center">
+                <div class="text-slate-500 text-sm mb-1">Liga nije generisana</div>
+                <div class="text-slate-400 text-sm mb-5">
+                  @if (teams().length < 2) {
+                    Najpre dodaj timove u tabu "Timovi".
+                  } @else if (teams().length % 2 !== 0) {
+                    Potreban je paran broj timova. Trenutno: {{ teams().length }}.
+                  } @else {
+                    {{ teams().length }} timova · {{ teams().length - 1 }} kola · {{ totalMatchCount() }} mečeva (svako sa svakim)
+                  }
+                </div>
+                <button
+                  (click)="generateLeague()"
+                  [disabled]="generatingLeague() || teams().length < 2 || teams().length % 2 !== 0"
+                  class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
+                >
+                  {{ generatingLeague() ? 'Generišem...' : 'Generiši Ligu' }}
+                </button>
               </div>
             } @else {
+              <!-- League exists -->
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-slate-500 text-sm">
+                  {{ roundsDesc().length }} kola · {{ matches().length }} mečeva
+                </span>
+                <button
+                  (click)="resetLeague()"
+                  [disabled]="generatingLeague()"
+                  class="text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-500/60 px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50"
+                >
+                  {{ generatingLeague() ? 'Resetujem...' : 'Resetuj Ligu' }}
+                </button>
+              </div>
+
               <div class="space-y-3">
                 @for (round of roundsDesc(); track round.id) {
                   <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
@@ -98,7 +120,9 @@ interface AddMatchFormState {
                       >
                         <span class="font-semibold text-white">{{ round.round_number }}. Kolo</span>
                         <div class="flex items-center gap-3">
-                          <span class="text-slate-500 text-xs">{{ matchCountForRound(round.id) }} mečeva</span>
+                          <span class="text-slate-500 text-xs">
+                            {{ playedInRound(round.id) }}/{{ matchCountForRound(round.id) }} odigrano
+                          </span>
                           <svg
                             class="w-4 h-4 text-slate-400 transition-transform duration-200"
                             [class.rotate-180]="isRoundOpen(round.id)"
@@ -110,7 +134,7 @@ interface AddMatchFormState {
                       </button>
                       <button
                         (click)="deleteRound(round.id, round.round_number)"
-                        class="px-3 py-3 text-slate-600 hover:text-red-400 transition-colors text-sm"
+                        class="px-3 py-3 text-slate-600 hover:text-red-400 transition-colors"
                         title="Obriši kolo"
                       >
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,92 +146,81 @@ interface AddMatchFormState {
 
                     @if (isRoundOpen(round.id)) {
                       <div class="border-t border-slate-700">
-                        <!-- Match rows -->
                         @for (match of matchesForRound(round.id); track match.id) {
-                          <div class="px-3 sm:px-4 py-3 flex flex-wrap sm:flex-nowrap items-center gap-2 border-b border-slate-700/40">
-                            <span class="flex-1 text-right text-slate-200 text-sm truncate min-w-0">
+                          <div class="px-3 sm:px-4 py-2.5 flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-1.5 border-b border-slate-700/40 last:border-0">
+                            <!-- Home team -->
+                            <span class="text-right text-slate-200 text-sm truncate w-[90px] sm:w-[130px]">
                               {{ match.home_team?.name }}
                             </span>
-                            <div class="flex items-center gap-1.5 shrink-0">
+
+                            <!-- Score inputs -->
+                            <div class="flex items-center gap-1 shrink-0">
+                              <span class="text-slate-600 text-xs">S</span>
                               <input
-                                type="number"
-                                min="0" max="2"
+                                type="number" min="0" max="2"
                                 [value]="editHome(match.id)"
                                 (input)="onEditInput(match.id, 'home', $event)"
-                                class="w-10 bg-slate-700 border border-slate-600 text-white text-center py-1.5 rounded text-sm
+                                class="w-9 bg-slate-700 border border-slate-600 text-white text-center py-1 rounded text-sm
                                        focus:outline-none focus:border-emerald-500 transition-colors"
                               />
                               <span class="text-slate-500 select-none">:</span>
                               <input
-                                type="number"
-                                min="0" max="2"
+                                type="number" min="0" max="2"
                                 [value]="editAway(match.id)"
                                 (input)="onEditInput(match.id, 'away', $event)"
-                                class="w-10 bg-slate-700 border border-slate-600 text-white text-center py-1.5 rounded text-sm
+                                class="w-9 bg-slate-700 border border-slate-600 text-white text-center py-1 rounded text-sm
+                                       focus:outline-none focus:border-emerald-500 transition-colors"
+                              />
+                              <span class="text-slate-600 text-xs ml-1.5">G</span>
+                              <input
+                                type="number" min="0"
+                                [value]="editHomeGames(match.id)"
+                                (input)="onEditInput(match.id, 'homeGames', $event)"
+                                class="w-10 bg-slate-700 border border-slate-600 text-white text-center py-1 rounded text-sm
+                                       focus:outline-none focus:border-emerald-500 transition-colors"
+                              />
+                              <span class="text-slate-500 select-none">:</span>
+                              <input
+                                type="number" min="0"
+                                [value]="editAwayGames(match.id)"
+                                (input)="onEditInput(match.id, 'awayGames', $event)"
+                                class="w-10 bg-slate-700 border border-slate-600 text-white text-center py-1 rounded text-sm
                                        focus:outline-none focus:border-emerald-500 transition-colors"
                               />
                             </div>
-                            <span class="flex-1 text-slate-200 text-sm truncate min-w-0">
+
+                            <!-- Away team -->
+                            <span class="text-slate-200 text-sm truncate flex-1 min-w-0">
                               {{ match.away_team?.name }}
                             </span>
+
+                            <!-- Actions -->
                             <div class="flex items-center gap-1 shrink-0">
                               <button
                                 (click)="saveResult(match.id)"
                                 [disabled]="isSaving(match.id) || !canSave(match.id)"
                                 class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-3 py-1.5 rounded text-xs transition-colors"
                               >{{ isSaving(match.id) ? '...' : 'Sačuvaj' }}</button>
+                              @if (match.home_sets !== null) {
+                                <button
+                                  (click)="clearMatch(match.id)"
+                                  class="text-slate-600 hover:text-amber-400 px-2 py-1.5 rounded text-xs transition-colors"
+                                  title="Poništi rezultat"
+                                >
+                                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                </button>
+                              }
                               <button
                                 (click)="deleteMatch(match.id)"
                                 class="text-slate-600 hover:text-red-400 px-2 py-1.5 rounded text-xs transition-colors"
+                                title="Obriši meč"
                               >✕</button>
                             </div>
                           </div>
                         }
-
-                        <!-- Add match form -->
-                        <div class="px-4 py-3 bg-slate-900/30">
-                          @if (!isAddFormOpen(round.id)) {
-                            <button
-                              (click)="openAddForm(round.id)"
-                              class="text-emerald-400 hover:text-emerald-300 text-sm transition-colors"
-                            >+ Dodaj Meč</button>
-                          } @else {
-                            <div class="flex flex-wrap gap-2 items-center">
-                              <select
-                                [ngModel]="addFormHome(round.id)"
-                                (ngModelChange)="setAddFormValue(round.id, 'home', $event)"
-                                class="bg-slate-700 border border-slate-600 text-white px-2 py-1.5 rounded text-sm
-                                       focus:outline-none focus:border-emerald-500 min-w-0 flex-1 sm:flex-none"
-                              >
-                                <option value="">Dom tim</option>
-                                @for (team of teams(); track team.id) {
-                                  <option [value]="team.id">{{ team.name }}</option>
-                                }
-                              </select>
-                              <span class="text-slate-500 text-sm hidden sm:block">vs</span>
-                              <select
-                                [ngModel]="addFormAway(round.id)"
-                                (ngModelChange)="setAddFormValue(round.id, 'away', $event)"
-                                class="bg-slate-700 border border-slate-600 text-white px-2 py-1.5 rounded text-sm
-                                       focus:outline-none focus:border-emerald-500 min-w-0 flex-1 sm:flex-none"
-                              >
-                                <option value="">Gost tim</option>
-                                @for (team of teams(); track team.id) {
-                                  <option [value]="team.id">{{ team.name }}</option>
-                                }
-                              </select>
-                              <button
-                                (click)="addMatch(round.id)"
-                                [disabled]="!canAddMatch(round.id) || isAddFormSaving(round.id)"
-                                class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-3 py-1.5 rounded text-sm transition-colors"
-                              >{{ isAddFormSaving(round.id) ? '...' : 'Dodaj' }}</button>
-                              <button
-                                (click)="closeAddForm(round.id)"
-                                class="text-slate-500 hover:text-slate-300 px-2 py-1.5 text-sm transition-colors"
-                              >Otkaži</button>
-                            </div>
-                          }
-                        </div>
                       </div>
                     }
                   </div>
@@ -254,6 +267,11 @@ interface AddMatchFormState {
                         <span class="text-slate-600 text-xs w-5 text-right">{{ i + 1 }}</span>
                         <span class="text-slate-200 text-sm">{{ team.name }}</span>
                       </div>
+                      <button
+                        (click)="deleteTeam(team.id)"
+                        class="text-slate-700 hover:text-red-400 transition-colors text-xs px-2 py-1"
+                        title="Obriši tim"
+                      >✕</button>
                     </div>
                   }
                 </div>
@@ -263,6 +281,27 @@ interface AddMatchFormState {
         }
       </div>
     </div>
+
+    <!-- Confirm dialog -->
+    @if (dialog()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" (click)="dialog.set(null)"></div>
+        <div class="relative bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm p-5">
+          <h3 class="font-semibold text-white text-base mb-1">{{ dialog()!.title }}</h3>
+          <p class="text-slate-400 text-sm mb-5 leading-relaxed">{{ dialog()!.message }}</p>
+          <div class="flex justify-end gap-2">
+            <button
+              (click)="dialog.set(null)"
+              class="px-4 py-2 text-sm text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+            >Otkaži</button>
+            <button
+              (click)="confirmDialog()"
+              class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors"
+            >{{ dialog()!.confirmLabel }}</button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class AdminDashboardComponent implements OnInit {
@@ -273,13 +312,14 @@ export class AdminDashboardComponent implements OnInit {
   activeTab = signal<'rounds' | 'teams'>('rounds');
   newTeamName = '';
   addingTeam = signal(false);
-  creatingRound = signal(false);
+  generatingLeague = signal(false);
   globalError = signal('');
 
+  dialog = signal<DialogConfig | null>(null);
+
   private openRoundIds = signal<string[]>([]);
-  private editState = signal<Record<string, { home: number | string; away: number | string }>>({});
+  private editState = signal<Record<string, MatchEditState>>({});
   private savingMatchIds = signal<string[]>([]);
-  private addForms = signal<Record<string, AddMatchFormState>>({});
 
   roundsDesc = computed(() =>
     [...this.rounds()].sort((a, b) => b.round_number - a.round_number)
@@ -306,20 +346,20 @@ export class AdminDashboardComponent implements OnInit {
       this.rounds.set(rounds);
       this.matches.set(matches);
 
-      // Init edit state from existing results
-      const state: Record<string, { home: number | string; away: number | string }> = {};
+      const state: Record<string, MatchEditState> = {};
       matches.forEach(m => {
         state[m.id] = {
           home: m.home_sets !== null ? m.home_sets : '',
           away: m.away_sets !== null ? m.away_sets : '',
+          homeGames: m.home_games != null ? m.home_games : '',
+          awayGames: m.away_games != null ? m.away_games : '',
         };
       });
       this.editState.set(state);
 
-      // Auto-open latest round
+      // Auto-open round 1
       if (rounds.length > 0) {
-        const latest = rounds[rounds.length - 1];
-        this.openRoundIds.set([latest.id]);
+        this.openRoundIds.set([rounds[0].id]);
       }
     } catch {
       this.globalError.set('Greška pri učitavanju. Osveži stranicu.');
@@ -339,10 +379,51 @@ export class AdminDashboardComponent implements OnInit {
         state[m.id] = {
           home: m.home_sets !== null ? m.home_sets : '',
           away: m.away_sets !== null ? m.away_sets : '',
+          homeGames: m.home_games != null ? m.home_games : '',
+          awayGames: m.away_games != null ? m.away_games : '',
         };
       }
     });
     this.editState.set(state);
+  }
+
+  confirmDialog() {
+    const d = this.dialog();
+    this.dialog.set(null);
+    d?.onConfirm();
+  }
+
+  private ask(config: DialogConfig) {
+    this.dialog.set(config);
+  }
+
+  // ---- League generation ----
+  totalMatchCount(): number {
+    const n = this.teams().length;
+    return (n * (n - 1)) / 2;
+  }
+
+  async generateLeague() {
+    this.generatingLeague.set(true);
+    this.globalError.set('');
+    try {
+      await this.league.generateLeague();
+      await this.loadAll();
+    } catch (e: any) {
+      this.globalError.set(e?.message ?? 'Greška pri generisanju lige.');
+    } finally {
+      this.generatingLeague.set(false);
+    }
+  }
+
+  resetLeague() {
+    const n = this.teams().length;
+    this.ask({
+      title: 'Resetuj Ligu',
+      message: `Ovo će obrisati sva kola i mečeve i generisati novu ligu za ${n} timova. Svi uneseni rezultati će biti izgubljeni.`,
+      confirmLabel: 'Resetuj',
+      onConfirm: () => this.generateLeague(),
+    });
   }
 
   // ---- Round helpers ----
@@ -354,6 +435,10 @@ export class AdminDashboardComponent implements OnInit {
     return this.matchesForRound(roundId).length;
   }
 
+  playedInRound(roundId: string): number {
+    return this.matchesForRound(roundId).filter(m => m.home_sets !== null).length;
+  }
+
   isRoundOpen(id: string): boolean {
     return this.openRoundIds().includes(id);
   }
@@ -363,25 +448,16 @@ export class AdminDashboardComponent implements OnInit {
     this.openRoundIds.set(ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
   }
 
-  async createRound() {
-    this.creatingRound.set(true);
-    this.globalError.set('');
-    try {
-      const rounds = this.rounds();
-      const next = rounds.length > 0 ? Math.max(...rounds.map(r => r.round_number)) + 1 : 1;
-      const newRound = await this.league.createRound(next);
-      const updated = await this.league.getRounds();
-      this.rounds.set(updated);
-      this.openRoundIds.update(ids => [...ids, newRound.id]);
-    } catch {
-      this.globalError.set('Greška pri kreiranju kola.');
-    } finally {
-      this.creatingRound.set(false);
-    }
+  deleteRound(roundId: string, num: number) {
+    this.ask({
+      title: `Obriši ${num}. Kolo`,
+      message: `Ovo će obrisati ${num}. kolo i sve njegove mečeve.`,
+      confirmLabel: 'Obriši',
+      onConfirm: () => this.doDeleteRound(roundId),
+    });
   }
 
-  async deleteRound(roundId: string, num: number) {
-    if (!confirm(`Obriši ${num}. kolo i sve njegove mečeve?`)) return;
+  private async doDeleteRound(roundId: string) {
     try {
       await this.league.deleteRound(roundId);
       const [rounds, matches] = await Promise.all([this.league.getRounds(), this.league.getMatches()]);
@@ -401,9 +477,22 @@ export class AdminDashboardComponent implements OnInit {
     return this.editState()[matchId]?.away ?? '';
   }
 
-  onEditInput(matchId: string, side: 'home' | 'away', event: Event) {
+  editHomeGames(matchId: string): number | string {
+    return this.editState()[matchId]?.homeGames ?? '';
+  }
+
+  editAwayGames(matchId: string): number | string {
+    return this.editState()[matchId]?.awayGames ?? '';
+  }
+
+  onEditInput(matchId: string, side: 'home' | 'away' | 'homeGames' | 'awayGames', event: Event) {
     const val = (event.target as HTMLInputElement).value;
-    const numVal = val === '' ? '' : Math.min(2, Math.max(0, parseInt(val, 10)));
+    let numVal: number | string;
+    if (side === 'home' || side === 'away') {
+      numVal = val === '' ? '' : Math.min(2, Math.max(0, parseInt(val, 10)));
+    } else {
+      numVal = val === '' ? '' : Math.max(0, parseInt(val, 10));
+    }
     this.editState.update(s => ({ ...s, [matchId]: { ...s[matchId], [side]: numVal } }));
   }
 
@@ -413,8 +502,7 @@ export class AdminDashboardComponent implements OnInit {
 
   canSave(matchId: string): boolean {
     const s = this.editState()[matchId];
-    if (!s) return false;
-    return s.home !== '' && s.away !== '';
+    return !!s && s.home !== '' && s.away !== '';
   }
 
   async saveResult(matchId: string) {
@@ -423,7 +511,9 @@ export class AdminDashboardComponent implements OnInit {
     this.savingMatchIds.update(ids => [...ids, matchId]);
     this.globalError.set('');
     try {
-      await this.league.updateMatchResult(matchId, Number(s.home), Number(s.away));
+      const homeGames = s.homeGames !== '' ? Number(s.homeGames) : null;
+      const awayGames = s.awayGames !== '' ? Number(s.awayGames) : null;
+      await this.league.updateMatchResult(matchId, Number(s.home), Number(s.away), homeGames, awayGames);
       await this.reloadMatchesAndTeams();
     } catch {
       this.globalError.set('Greška pri čuvanju rezultata.');
@@ -432,75 +522,44 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  async deleteMatch(matchId: string) {
-    if (!confirm('Obriši ovaj meč?')) return;
+  clearMatch(matchId: string) {
+    this.ask({
+      title: 'Poništi Rezultat',
+      message: 'Rezultat ovog meča će biti obrisan. Meč će biti označen kao neodigran.',
+      confirmLabel: 'Poništi',
+      onConfirm: () => this.doClearMatch(matchId),
+    });
+  }
+
+  private async doClearMatch(matchId: string) {
+    this.globalError.set('');
+    try {
+      await this.league.clearMatchResult(matchId);
+      await this.reloadMatchesAndTeams();
+      this.editState.update(s => ({
+        ...s,
+        [matchId]: { home: '', away: '', homeGames: '', awayGames: '' },
+      }));
+    } catch {
+      this.globalError.set('Greška pri poništavanju rezultata.');
+    }
+  }
+
+  deleteMatch(matchId: string) {
+    this.ask({
+      title: 'Obriši Meč',
+      message: 'Ovaj meč će biti trajno obrisan.',
+      confirmLabel: 'Obriši',
+      onConfirm: () => this.doDeleteMatch(matchId),
+    });
+  }
+
+  private async doDeleteMatch(matchId: string) {
     try {
       await this.league.deleteMatch(matchId);
       await this.reloadMatchesAndTeams();
     } catch {
       this.globalError.set('Greška pri brisanju meča.');
-    }
-  }
-
-  // ---- Add match form helpers ----
-  isAddFormOpen(roundId: string): boolean {
-    return this.addForms()[roundId]?.open ?? false;
-  }
-
-  isAddFormSaving(roundId: string): boolean {
-    return this.addForms()[roundId]?.saving ?? false;
-  }
-
-  addFormHome(roundId: string): string {
-    return this.addForms()[roundId]?.homeTeamId ?? '';
-  }
-
-  addFormAway(roundId: string): string {
-    return this.addForms()[roundId]?.awayTeamId ?? '';
-  }
-
-  openAddForm(roundId: string) {
-    this.addForms.update(f => ({
-      ...f,
-      [roundId]: { homeTeamId: '', awayTeamId: '', open: true, saving: false },
-    }));
-  }
-
-  closeAddForm(roundId: string) {
-    this.addForms.update(f => {
-      const copy = { ...f };
-      delete copy[roundId];
-      return copy;
-    });
-  }
-
-  setAddFormValue(roundId: string, side: 'home' | 'away', value: string) {
-    this.addForms.update(f => ({
-      ...f,
-      [roundId]: {
-        ...f[roundId],
-        [side === 'home' ? 'homeTeamId' : 'awayTeamId']: value,
-      },
-    }));
-  }
-
-  canAddMatch(roundId: string): boolean {
-    const f = this.addForms()[roundId];
-    return !!f?.homeTeamId && !!f?.awayTeamId && f.homeTeamId !== f.awayTeamId;
-  }
-
-  async addMatch(roundId: string) {
-    const f = this.addForms()[roundId];
-    if (!f || !f.homeTeamId || !f.awayTeamId) return;
-    this.addForms.update(forms => ({ ...forms, [roundId]: { ...forms[roundId], saving: true } }));
-    this.globalError.set('');
-    try {
-      await this.league.createMatch(roundId, f.homeTeamId, f.awayTeamId);
-      await this.reloadMatchesAndTeams();
-      this.closeAddForm(roundId);
-    } catch {
-      this.globalError.set('Greška pri dodavanju meča.');
-      this.addForms.update(forms => ({ ...forms, [roundId]: { ...forms[roundId], saving: false } }));
     }
   }
 
@@ -518,6 +577,25 @@ export class AdminDashboardComponent implements OnInit {
       this.globalError.set('Greška pri dodavanju tima.');
     } finally {
       this.addingTeam.set(false);
+    }
+  }
+
+  deleteTeam(teamId: string) {
+    this.ask({
+      title: 'Obriši Tim',
+      message: 'Ovaj tim će biti trajno obrisan. Tim se ne može obrisati ako ima mečeve u ligi.',
+      confirmLabel: 'Obriši',
+      onConfirm: () => this.doDeleteTeam(teamId),
+    });
+  }
+
+  private async doDeleteTeam(teamId: string) {
+    try {
+      await this.league.deleteTeam(teamId);
+      const teams = await this.league.getTeams();
+      this.teams.set(teams);
+    } catch {
+      this.globalError.set('Greška pri brisanju tima. Tim možda ima mečeve u ligi.');
     }
   }
 
