@@ -1,7 +1,9 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { LeagueService } from '../../core/services/league.service';
+import { SupabaseService } from '../../core/services/supabase.service';
 import { Round } from '../../core/models/round.model';
 import { Match } from '../../core/models/match.model';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface RoundWithMatches extends Round {
   matches: Match[];
@@ -12,19 +14,7 @@ interface RoundWithMatches extends Round {
   standalone: true,
   template: `
     <div class="max-w-5xl mx-auto px-4 py-6 sm:py-8">
-      <div class="flex items-center justify-between mb-5">
-        <h1 class="text-xl sm:text-2xl font-bold text-white">Rezultati</h1>
-        <button
-          (click)="load()"
-          class="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-800"
-          title="Osveži"
-        >
-          <svg class="w-4 h-4" [class.animate-spin]="loading()" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
-      </div>
+      <h1 class="text-xl sm:text-2xl font-bold text-white mb-5">Rezultati</h1>
 
       @if (loading() && roundsWithMatches().length === 0) {
         <div class="bg-slate-800 rounded-xl border border-slate-700 p-8 text-center text-slate-500 text-sm">
@@ -91,7 +81,7 @@ interface RoundWithMatches extends Round {
     </div>
   `,
 })
-export class ResultsComponent implements OnInit {
+export class ResultsComponent implements OnInit, OnDestroy {
   private rounds = signal<Round[]>([]);
   private matches = signal<Match[]>([]);
   loading = signal(false);
@@ -105,10 +95,20 @@ export class ResultsComponent implements OnInit {
       .sort((a, b) => a.round_number - b.round_number);
   });
 
-  constructor(private league: LeagueService) {}
+  private channel: RealtimeChannel | null = null;
+
+  constructor(private league: LeagueService, private supabase: SupabaseService) {}
 
   ngOnInit() {
     this.load();
+    this.channel = this.supabase.client
+      .channel('results-matches')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => this.load())
+      .subscribe();
+  }
+
+  ngOnDestroy() {
+    if (this.channel) this.supabase.client.removeChannel(this.channel);
   }
 
   async load() {
