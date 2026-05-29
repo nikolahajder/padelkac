@@ -14,7 +14,7 @@ interface RoundWithMatches extends Round {
   standalone: true,
   template: `
     <div class="max-w-5xl mx-auto px-4 py-6 sm:py-8">
-      <h1 class="text-xl sm:text-2xl font-bold text-white mb-5">Rezultati</h1>
+      <h1 class="text-xl sm:text-2xl font-bold text-white mb-5">Raspored</h1>
 
       @if (loading() && roundsWithMatches().length === 0) {
         <div class="bg-slate-800 rounded-xl border border-slate-700 p-8 text-center text-slate-500 text-sm">

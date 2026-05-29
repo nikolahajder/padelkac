@@ -8,7 +8,7 @@ import { AdminDashboardComponent } from './features/admin/admin-dashboard.compon
 export const routes: Routes = [
   { path: '', redirectTo: 'tabela', pathMatch: 'full' },
   { path: 'tabela', component: StandingsComponent },
-  { path: 'rezultati', component: ResultsComponent },
+  { path: 'raspored', component: ResultsComponent },
   { path: 'admin/login', component: AdminLoginComponent },
   { path: 'admin', component: AdminDashboardComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: 'tabela' },

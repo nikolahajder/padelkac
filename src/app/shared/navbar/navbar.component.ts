@@ -21,10 +21,10 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
               class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
             >Tabela</a>
             <a
-              routerLink="/rezultati"
+              routerLink="/raspored"
               routerLinkActive="bg-slate-700 text-white"
               class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            >Rezultati</a>
+            >Raspored</a>
           </div>
 
           <!-- Mobile menu button -->
@@ -50,16 +50,18 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
           <div class="sm:hidden border-t border-slate-700/60 py-2 pb-3">
             <a
               routerLink="/tabela"
-              routerLinkActive="text-emerald-400"
-              class="block px-3 py-2 text-sm text-slate-300 hover:text-white transition-colors"
+              routerLinkActive
+              #rlaTabela="routerLinkActive"
+              [class]="'block px-3 py-2 rounded-lg text-sm font-medium transition-colors ' + (rlaTabela.isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white')"
               (click)="menuOpen.set(false)"
             >Tabela</a>
             <a
-              routerLink="/rezultati"
-              routerLinkActive="text-emerald-400"
-              class="block px-3 py-2 text-sm text-slate-300 hover:text-white transition-colors"
+              routerLink="/raspored"
+              routerLinkActive
+              #rlaRaspored="routerLinkActive"
+              [class]="'block px-3 py-2 rounded-lg text-sm font-medium transition-colors ' + (rlaRaspored.isActive ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white')"
               (click)="menuOpen.set(false)"
-            >Rezultati</a>
+            >Raspored</a>
           </div>
         }
       </div>
