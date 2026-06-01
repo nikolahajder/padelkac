@@ -37,11 +37,11 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
               <tbody>
                 @for (s of standings(); track s.team.id) {
                   <tr class="border-b border-slate-700/40 hover:bg-slate-700/25 transition-colors last:border-0"
-                    [class.bg-emerald-500/5]="s.position <= 4">
+                    [class.bg-emerald-500/5]="s.position <= 8">
                     <td class="pl-3 pr-1 sm:px-4 py-2.5 sm:py-3">
                       <span class="text-xs font-bold tabular-nums w-5 sm:w-6 inline-block text-center"
-                        [class.text-emerald-400]="s.position <= 4"
-                        [class.text-slate-500]="s.position > 4">
+                        [class.text-emerald-400]="s.position <= 8"
+                        [class.text-slate-500]="s.position > 8">
                         {{ s.position }}
                       </span>
                     </td>
@@ -56,12 +56,12 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
                     >{{ s.setDiff > 0 ? '+' : '' }}{{ s.setDiff }}</td>
                     <td class="px-1 pr-3 sm:px-4 py-2.5 sm:py-3 text-center font-bold text-white tabular-nums">{{ s.points }}</td>
                   </tr>
-                  @if (s.position === 4 && standings().length > 4) {
+                  @if (s.position === 8 && standings().length > 8) {
                     <tr>
                       <td colspan="7" class="px-4 py-0">
                         <div class="flex items-center gap-2 py-1">
                           <div class="flex-1 border-t border-dashed border-emerald-500/30"></div>
-                          <span class="text-emerald-500/50 text-xs tracking-wider">Final Four</span>
+                          <span class="text-emerald-500/50 text-xs tracking-wider">Top 8</span>
                           <div class="flex-1 border-t border-dashed border-emerald-500/30"></div>
                         </div>
                       </td>
